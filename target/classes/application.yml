@@ -1,0 +1,19 @@
+server:
+  port: 8080
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/smartresume?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: Yashptl421
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+app:
+  jwt:
+    # Replace with a random secret of at least 32 characters; use an environment variable in deployment.
+    secret: ${JWT_SECRET:change-this-development-secret-key-32-chars-minimum}
+    expiration-minutes: 120

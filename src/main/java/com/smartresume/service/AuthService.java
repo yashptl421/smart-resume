@@ -1,0 +1,51 @@
+package com.smartresume.service;
+
+import com.smartresume.config.JwtService;
+import com.smartresume.dto.AuthDtos.*;
+import com.smartresume.entity.AppUser;
+import com.smartresume.repository.UserRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+@Service
+public class AuthService {
+    private final UserRepository users;
+    private final PasswordEncoder encoder;
+    private final JwtService jwt;
+
+    public AuthService(UserRepository users, PasswordEncoder encoder, JwtService jwt) {
+        this.users = users; this.encoder = encoder; this.jwt = jwt;
+    }
+
+    @Transactional
+    public AuthResponse register(RegisterRequest request) {
+        String email = request.email().trim().toLowerCase();
+        if (users.existsByEmailIgnoreCase(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "An account with this email already exists.");
+        }
+        AppUser user = new AppUser();
+        user.setFullName(request.fullName().trim());
+        user.setEmail(email);
+        user.setPasswordHash(encoder.encode(request.password()));
+        user = users.save(user);
+        return response(user);
+    }
+
+    @Transactional(readOnly = true)
+    public AuthResponse login(LoginRequest request) {
+        AppUser user = users.findByEmailIgnoreCase(request.email().trim())
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password."));
+        if (!encoder.matches(request.password(), user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password.");
+        }
+        return response(user);
+    }
+
+    private AuthResponse response(AppUser user) {
+        return new AuthResponse(jwt.generateToken(user.getEmail()), "Bearer",
+                user.getId(), user.getFullName(), user.getEmail());
+    }
+}
